@@ -1,0 +1,7 @@
+# 可选：本地 Sentence Transformers Embedding
+# 注意：会引入 torch（CPU 版约 200MB~2.5GB，取决于平台），首次使用还会下载模型权重。
+# 默认安装不包含本文件，项目开箱即用依赖的是零下载的哈希 Embedding。
+#
+#   py -3.14 -m pip install -r requirements-local-embedding.txt
+#
+sentence-transformers>=3.0,<7.0

@@ -1,42 +1,42 @@
-# rag-knowledge-base：唯一的配置与依赖清单。
-# 第一阶段零运行时依赖；第二阶段接入真实模型服务，依赖与 01 项目保持同一方案。
-
-[build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "rag-knowledge-base"
-version = "0.2.0"
-description = "RAG 知识库：检索增强生成流水线（Mock + OpenAI 兼容真实客户端，已验证目标：智谱 GLM）"
-readme = "README.md"
-requires-python = ">=3.11"
-dependencies = [
-    # .env 加载：轻量、活跃维护、免费（与 01 项目一致）
-    "python-dotenv>=1.0",
-    # HTTP 客户端：轻量、活跃维护、原生超时与连接池（与 01 项目一致；理由见 README「依赖选型记录」）
-    "httpx>=0.28",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.3",
-    "ruff>=0.8",
-]
-
-[tool.setuptools.packages.find]
-where = ["src"]
+# 本项目以 requirements*.txt 为依赖来源（便于 Docker 与 CI 直接使用），
+# 这里只保留工具配置，不做可安装包的分发配置。
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
+pythonpath = ["."]
+addopts = "-ra --strict-markers"
+markers = [
+    "slow: 较慢的集成测试（真实 Chroma 持久化）",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:chromadb.*",
+    "ignore::DeprecationWarning:pydantic.*",
+]
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+extend-exclude = ["data", ".venv"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B"]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["rag_knowledge_base"]
+known-first-party = ["app", "tests"]
+
+[tool.ruff.lint.per-file-ignores]
+# FastAPI 的 Depends/File/Query 作为默认值是其官方推荐写法
+"app/api/*.py" = ["B008"]
+# 样例文档是长段落文本，不按代码行宽折行
+"scripts/make_samples.py" = ["E501"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/main.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

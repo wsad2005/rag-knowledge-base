@@ -10,26 +10,38 @@ permissions:
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # 与 pyproject.toml 的 requires-python = ">=3.11" 保持一致
-        python-version: ["3.11", "3.14"]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          # 与 .python-version 一致；项目在 Python 3.14.3 上开发与实测
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
 
-      # 以下步骤与 README 的“安装 / 检查 / 测试 / 运行”命令一一对应
-      - name: 安装项目与开发依赖
-        run: python -m pip install -e ".[dev]"
+      # 依赖来源是 requirements*.txt（pyproject.toml 只保留工具配置）
+      - name: 安装运行时与开发依赖
+        run: python -m pip install -r requirements-dev.txt
 
       - name: Ruff 代码检查
         run: ruff check .
 
-      - name: 运行测试
+      - name: 运行完整测试
         run: python -m pytest -q
 
-      - name: 端到端 Mock 演示（无需密钥、不联网）
-        run: python -m rag_knowledge_base
+      # 无 Key 冒烟：默认哈希 Embedding + 未配置 LLM 时，服务必须能启动并自检通过
+      - name: FastAPI /api/health 冒烟验证
+        run: |
+          python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 > uvicorn-smoke.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8000/api/health > /dev/null; then
+              echo "健康检查通过："
+              curl -s http://127.0.0.1:8000/api/health
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "服务未在 30 秒内就绪，日志如下："
+          cat uvicorn-smoke.log
+          exit 1

@@ -1,0 +1,4 @@
+# 可选：使用 PostgreSQL 时额外安装的驱动
+#   py -3.14 -m pip install -r requirements-postgres.txt
+# 然后设置 DATABASE_URL=postgresql+psycopg://user:password@host:5432/ragkb
+psycopg[binary]>=3.2,<4.0
